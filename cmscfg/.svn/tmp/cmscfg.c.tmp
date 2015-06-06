@@ -1,0 +1,347 @@
+/**************************************************************************
+ *
+ * GEMTEK CONFIDENTIAL
+ *
+ * Copyright 2006-2007 Gemtek Technology Co.,Ltd. All Rights Reserved.
+ *
+ * The source code contained or described herein and all documents related
+ * to the source code ("Material") are owned by Gemtek Technology Co.,Ltd.
+ * or its suppliers or licensors. Title to the Material remains with
+ * Gemtek Technology Co.,Ltd. or its suppliers and licensors. The Material
+ * contains trade secrets and proprietary and confidential information of
+ * Gemtek or its suppliers and licensors. The Material is protected by
+ * worldwide copyright and trade secret laws and treaty provisions.
+ * No part of the Material may be used, copied, reproduced, modified,
+ * published, uploaded, posted, transmitted, distributed, or disclosed
+ * in any way without Gemtek's prior express written permission.
+ *
+ * No license under any patent, copyright, trade secret or other
+ * intellectual property right is granted to or conferred upon you by
+ * disclosure or delivery of the Materials, either expressly, by
+ * implication, inducement, estoppel or otherwise. Any license under such
+ * intellectual property rights must be express and approved by Gemtek in
+ * writing.
+ *
+ **************************************************************************/
+
+#include "../cms/cms.h"
+#include <cmc.h>
+
+#ifdef WIN32
+#include <windows.h>
+#include <tchar.h>
+#endif
+
+#include <stdio.h>
+#include <string.h>
+
+#define GetValue 1
+#define SetValue 2
+#define DelValue 3
+#define AddValue 4
+#define ReplaceValue 5
+#define NUM_PARAMETER 1024
+static const char *optstring="ihsardgwpoSu:n:v:f:G:";
+
+#ifdef WIN32
+extern int getopt(int argc, char	**argv, char	*opts);
+#endif
+extern char	*optarg;
+
+void printUsage()
+{
+	printf("Command Usage\n");
+	printf("-h: print this help message\n");
+	printf("-g: get value\n");
+	printf("-s: set value\n");
+	printf("-r: replace value\n");
+	printf("-d: delete value\n");
+	printf("-a: add value\n");
+	printf("-f: file to add value\n");
+	printf("-n: parameter name\n");
+	printf("-v: parameter value\n");
+	printf("-i: operate User value\n");
+	printf("-p: push command\n");
+	printf("-o: pop command\n");
+	printf("-w: write config file\n");
+	printf("-u: dump config file\n");
+	printf("-G: get multiple parameter value\n");
+	printf("-S: show variable name when -G is set\n");
+}
+
+int main(int argc,char *argv[])
+{
+	int ch;
+	int cmsoption=0;
+	int help=0;
+	int i;
+	char* multiParamName[NUM_PARAMETER];
+	char**multiParamValue;
+	char ParamName[MaxStringLen];
+	char ParamValue[BUFFER_MAX],FileName[BUFFER_MAX];
+	int UserOP=1;
+	int num = 0;
+	int len = 0;
+	short showName = 0;
+	snprintf(ParamName, sizeof(ParamName),"NULL");
+	snprintf(ParamValue, sizeof(ParamValue),"NULL");
+	snprintf(FileName, sizeof(FileName),"NULL");
+//	opterr=0;
+	ch=getopt(argc,argv,optstring);
+	if (ch==-1)
+	{
+	 printUsage();
+	 return 0;
+	}
+	do 
+	{
+		switch (ch)
+		{
+			case'h':
+				printUsage();
+				help=1;
+				break;
+			case's':
+				cmsoption=SetValue;
+				break;
+			case 'S':
+				showName=1;
+				break;
+			case'g':
+				cmsoption=GetValue;
+				break;
+			case'd':
+				cmsoption=DelValue;
+				break;
+			case'r':
+				cmsoption=ReplaceValue;
+				break;
+			case'a':
+				cmsoption=AddValue;
+				break;
+			case'i':
+				UserOP=0;
+				break;
+			case'n':
+				strncpy(ParamName,optarg,MaxStringLen-1);
+				break;
+			case'v':
+				strncpy(ParamValue,optarg,BUFFER_MAX-1);
+				break;
+			case'f':
+				strncpy(FileName,optarg,BUFFER_MAX-1);
+				break;
+			case'w':
+				cmsoption=WriteParamNow;
+				break;
+			case'p':
+				cmsoption=PushCMCmd;
+				break;
+			case'o':
+				cmsoption=PopCMCmd;
+				break;
+			case'u':
+				cmsoption=DumpFile;
+				strncpy(FileName,optarg,BUFFER_MAX-1);
+				break;
+			case 'G':
+				cmsoption=GetMultiValue;
+				optind--;
+                		for( ;optind < argc && *argv[optind] != '-'; optind++)
+				{
+					if( num < NUM_PARAMETER)
+					{
+						multiParamName[num] = strdup(argv[optind]);
+						if( multiParamName[num] == NULL)
+						{
+							
+							printf("%s/%s: fail to do strdup\n"__FILE__,__LINE__);
+							continue;
+						}
+						num++;
+					}
+					else
+						printf("error: please increase the array size !!\n");
+				}
+                		break;
+			default:
+			  break;
+		}
+	}while ((ch=getopt(argc,argv,optstring))!=-1);
+
+	if (cmsoption==GetValue)
+	{
+		if (strcmp(ParamName,"NULL")==0) 
+		{
+			printUsage();
+			return 0;
+		}
+		if(UserOP == 1)
+			printf("[CMS][User]%s=%s\n",ParamName,CMSGetValue(ParamName,GetValueUser));	
+		else
+			printf("[CMS][ISP]%s=%s\n",ParamName,CMSGetValue(ParamName,GetValueISP));	
+		return 0;
+	}
+	
+	if (cmsoption==SetValue)
+	{
+		if (strcmp(ParamValue,"NULL")==0 || strcmp(ParamName,"NULL")==0) 
+		{
+			printUsage();
+			return 0;
+		}
+		
+		if(UserOP == 1){
+			printf("[User]Set param %s value %s ... ",ParamName,ParamValue);
+			if(CMSSetValue(ParamName,ParamValue,SetValueUser) == FAIL)printf("fail\n");
+			else printf("successful\n");
+		}else{
+			printf("[ISP]Set param %s value %s ... \n",ParamName,ParamValue);
+			if(CMSSetValue(ParamName,ParamValue,SetValueISP) == FAIL) printf("fail\n");
+			else printf("successful\n");
+		}
+		return 0;
+	}
+	
+	if (cmsoption==ReplaceValue)
+	{
+		if (strcmp(ParamValue,"NULL")==0 || strcmp(ParamName,"NULL")==0) 
+		{
+			printUsage();
+			return 0;
+		}
+		
+		if(UserOP == 1){
+			printf("[User]Replace param %s value %s\n",ParamName,ParamValue);
+			CMSSetValue(ParamName,ParamValue,ReplaceValueUser);
+		}else{
+			printf("[User]Replace param %s value %s\n",ParamName,ParamValue);
+			CMSSetValue(ParamName,ParamValue,ReplaceValueISP);
+		}
+		return 0;
+	}
+	
+	if (cmsoption==GetValue)
+	{
+		if (strcmp(ParamName,"NULL")==0) 
+		{
+			printUsage();
+			return 0;
+		}
+		printf("[CMS]%s=%s\n",ParamName,CMSGetValue(ParamName,GetValueUser));	
+		return 0;
+	}
+	if (cmsoption==DelValue)
+	{
+		if (strcmp(ParamName,"NULL")==0) 
+		{
+			printUsage();
+			return 0;
+		}
+		if (CMSDelParam(ParamName,DelValueUser)) printf("Delete %s success\n",ParamName);
+		else printf("Delete %s failed\n",ParamName);
+		return 0;
+	}
+	if (cmsoption==SetValue)
+	{
+		if (strcmp(ParamValue,"NULL")==0 || strcmp(ParamName,"NULL")==0) 
+		{
+			printUsage();
+			return 0;
+		}
+		printf("Set param %s value %s\n",ParamName,ParamValue);
+		CMSSetValue(ParamName,ParamValue,SetValueUser);
+		return 0;
+	}
+	if (cmsoption==ReplaceValue)
+	{
+		if (strcmp(ParamValue,"NULL")==0 || strcmp(ParamName,"NULL")==0) 
+		{
+			printUsage();
+			return 0;
+		}
+		printf("Replace param %s value %s\n",ParamName,ParamValue);
+		CMSSetValue(ParamName,ParamValue,ReplaceValueUser);
+		return 0;
+	}
+	if (cmsoption==AddValue)
+	{
+		if (strcmp(ParamValue,"NULL")==0 || strcmp(ParamName,"NULL")==0 || strcmp(FileName,"NULL")==0) 
+		{
+			printUsage();
+			return 0;
+		}
+		printf("Add param %s value %s in file %s\n",ParamName,ParamValue,FileName);
+		CMSAddParam(ParamName,FileName,ParamValue,AddValueUser);
+		return 0;
+	}
+	if (cmsoption==WriteParamNow)
+	{
+		CMSWriteParam(WriteParamNow);
+		return 0;
+	}
+	if (cmsoption==PushCMCmd)
+	{
+		if (strcmp(ParamValue,"NULL")==0) 
+		{
+			printUsage();
+			return 0;
+		}
+		printf("[User]Push command value %s\n", ParamValue);
+
+		CMSSetValue(ParamName,ParamValue,PushCMCmd);
+		return 0;
+	}
+	if (cmsoption==PopCMCmd)
+	{
+		printf("[User]Pop command %s\n", CMSGetValue(ParamName,PopCMCmd));
+
+		return 0;
+	}
+	if (cmsoption==DumpFile)
+	{
+		if (strcmp(FileName,"NULL")==0) 
+		{
+			printUsage();
+			return 0;
+		}
+		printf("[User]Dump File to %s\n", FileName);
+		CMSDumpFile(FileName);
+
+		return 0;
+	}
+	if(cmsoption=GetMultiValue )
+	{
+		
+		if( num == 0)
+		{
+			printUsage();
+			return 0;
+		}
+
+		multiParamValue = CMSGetMultiValue(multiParamName,num);
+		if( multiParamValue )
+		{
+			for(i=0; i<num; i++)
+			{
+<<<<<<< .mine
+				if(showName) printf("%s=",multiParamName[i]);
+				
+				if(!strcmp(multiParamValue[i],"(null)"))
+					printf("''\n");
+=======
+				if(showName) printf("%s='%s'\n",multiParamName[i],strcmp(multiParamValue[i],"(null)")?multiParamValue[i]:"");
+>>>>>>> .r8703
+				else
+					printf("'%s'\n",multiParamValue[i]);
+			}
+			free(multiParamValue);
+		}
+		for(i = 0 ;i < num ; i++) free(multiParamName[i]);
+		return 0;
+	}
+
+	if (help==0) printUsage();
+
+	return 0;
+}

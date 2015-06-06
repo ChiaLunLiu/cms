@@ -1,0 +1,29 @@
+K 25
+svn:wc:ra_dav:version-url
+V 98
+/svn/!svn/ver/8819/Project/Whisbih/trunk/whisbih-sdk/buildroot/build_apps/systemMonitor/cms/cmscfg
+END
+Makefile
+K 25
+svn:wc:ra_dav:version-url
+V 107
+/svn/!svn/ver/4204/Project/Whisbih/trunk/whisbih-sdk/buildroot/build_apps/systemMonitor/cms/cmscfg/Makefile
+END
+cmscfg.c
+K 25
+svn:wc:ra_dav:version-url
+V 107
+/svn/!svn/ver/8819/Project/Whisbih/trunk/whisbih-sdk/buildroot/build_apps/systemMonitor/cms/cmscfg/cmscfg.c
+END
+getopt.c
+K 25
+svn:wc:ra_dav:version-url
+V 107
+/svn/!svn/ver/3403/Project/Whisbih/trunk/whisbih-sdk/buildroot/build_apps/systemMonitor/cms/cmscfg/getopt.c
+END
+cms.h
+K 25
+svn:wc:ra_dav:version-url
+V 104
+/svn/!svn/ver/3403/Project/Whisbih/trunk/whisbih-sdk/buildroot/build_apps/systemMonitor/cms/cmscfg/cms.h
+END

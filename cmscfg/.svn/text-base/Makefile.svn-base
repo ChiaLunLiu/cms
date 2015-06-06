@@ -1,0 +1,23 @@
+
+APP	= cmscfg
+
+SRCS    := $(wildcard *.c) $(wildcard lib/*.c)
+OBJS    := $(patsubst %.c,$(OBJDIR)/%.o,$(SRCS))
+
+CFLAGS  += -fno-builtin -I./lib -I../../CMLib/CMLib -I../../CMLib/include -I../include
+LDFLAGS += -L$(OBJDIR)/../lib -ldl -lpthread -lcmc -lcm -lcrypto
+
+library:
+
+program: $(OBJS)
+	$(CC) $(LDFLAGS) -o $(OBJDIR)/$(APP) $(OBJDIR)/cmscfg.o $(OBJDIR)/getopt.o 
+
+all: $(OBJDIR)/$(APP)
+
+$(OBJDIR)/$(APP): $(OBJDIR)/.stamp_gen_header $(OBJS)
+	$(CC) $(patsubst %.o,$(OBJDIR)/%.o,$(notdir $(OBJS))) $(LDFLAGS) -o $@
+
+$(OBJDIR)/%.o: %.c
+	$(CC) $(CFLAGS) -c $< -o $(OBJDIR)/$(@F)
+
+clean:

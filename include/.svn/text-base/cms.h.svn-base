@@ -1,0 +1,14 @@
+#ifdef WIN32
+
+#ifdef __cplusplus 
+extern "C" { 
+#endif
+
+int CMSStart();
+void CMSStop();
+
+#ifdef __cplusplus 
+}
+#endif
+
+#endif
